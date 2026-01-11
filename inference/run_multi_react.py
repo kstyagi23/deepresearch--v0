@@ -109,13 +109,7 @@ if __name__ == "__main__":
 
     tasks_to_run_all = []
     per_rollout_task_counts = {i: 0 for i in range(1, roll_out_count + 1)}
-    # Define ports
-    planning_ports = [6001, 6002, 6003, 6004, 6005, 6006, 6007, 6008]
-    # Round-robin state
-    planning_rr_idx = 0
-    summary_rr_idx = 0
-    # Sticky assignment per question
-    question_to_ports = {}
+    # Port no longer needed for cloud API mode
     for rollout_idx in range(1, roll_out_count + 1):
         processed_queries = processed_queries_per_rollout[rollout_idx]
         for item in items:
@@ -132,16 +126,10 @@ if __name__ == "__main__":
                 continue
 
             if question not in processed_queries:
-                # Ensure sticky and balanced port assignment per unique question
-                if question not in question_to_ports:
-                    planning_port = planning_ports[planning_rr_idx % len(planning_ports)]
-                    question_to_ports[question] = planning_port
-                    planning_rr_idx += 1
-                planning_port = question_to_ports[question]
                 tasks_to_run_all.append({
                     "item": item.copy(),
                     "rollout_idx": rollout_idx,
-                    "planning_port": planning_port,
+                    "planning_port": None,  # Not used in cloud mode
                 })
                 per_rollout_task_counts[rollout_idx] += 1
 

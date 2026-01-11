@@ -28,6 +28,12 @@ OBS_END = '\n</tool_response>'
 
 MAX_LLM_CALL_PER_RUN = int(os.getenv('MAX_LLM_CALL_PER_RUN', 100))
 
+# Cloud API configuration (Main reasoning model)
+CLOUD_API_KEY = os.getenv("MAIN_MODEL_API_KEY", "")
+CLOUD_BASE_URL = os.getenv("MAIN_MODEL_BASE_URL", "")
+CLOUD_MODEL_NAME = os.getenv("MAIN_MODEL_NAME", "")
+TOKENIZER_MODEL_ID = os.getenv("TOKENIZER", "")
+
 TOOL_CLASS = [
     FileParser(),
     Scholar(),
@@ -56,14 +62,17 @@ class MultiTurnReactAgent(FnCallAgent):
     def sanity_check_output(self, content):
         return "<think>" in content and "</think>" in content
     
-    def call_server(self, msgs, planning_port, max_tries=10):
+    def call_server(self, msgs, planning_port=None, max_tries=10):
+        """Call cloud API for model inference.
         
-        openai_api_key = "EMPTY"
-        openai_api_base = f"http://127.0.0.1:{planning_port}/v1"
-
+        Args:
+            msgs: List of message dicts for chat completion
+            planning_port: Deprecated, kept for backward compatibility
+            max_tries: Maximum number of retry attempts
+        """
         client = OpenAI(
-            api_key=openai_api_key,
-            base_url=openai_api_base,
+            api_key=CLOUD_API_KEY,
+            base_url=CLOUD_BASE_URL,
             timeout=600.0,
         )
 
@@ -107,10 +116,11 @@ class MultiTurnReactAgent(FnCallAgent):
             else:
                 print("Error: All retry attempts have been exhausted. The call has failed.")
         
-        return f"vllm server error!!!"
+        return f"Cloud API error!!!"
 
     def count_tokens(self, messages):
-        tokenizer = AutoTokenizer.from_pretrained(self.llm_local_path) 
+        """Count tokens in messages using the configured tokenizer."""
+        tokenizer = AutoTokenizer.from_pretrained(TOKENIZER_MODEL_ID)
         full_prompt = tokenizer.apply_chat_template(messages, tokenize=False)
         tokens = tokenizer(full_prompt, return_tensors="pt")
         token_count = len(tokens["input_ids"][0])
