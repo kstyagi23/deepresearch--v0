@@ -276,6 +276,5 @@ if __name__ == "__main__":
         "api_server:app",
         host=host,
         port=port,
-        reload=True,
         log_level="info",
     )
