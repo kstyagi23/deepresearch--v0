@@ -267,7 +267,7 @@ async def research_sync(request: ResearchRequest):
 if __name__ == "__main__":
     import uvicorn
     
-    port = int(os.getenv("PORT", 8000))
+    port = int(os.getenv("PORT", 12123))
     host = os.getenv("HOST", "0.0.0.0")
     
     print(f"\n🔬 Starting DeepResearch API Server on {host}:{port}\n")
