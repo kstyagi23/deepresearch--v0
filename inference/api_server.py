@@ -262,6 +262,91 @@ async def research_sync(request: ResearchRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.get("/api/v1/research/fake-stream")
+async def fake_stream():
+    """
+    Fake streaming endpoint for testing.
+    Returns random research-like data as a stream.
+    """
+    import random
+    import string
+    
+    fake_tools = ["search", "visit", "google_scholar", "parse_file", "PythonInterpreter"]
+    fake_urls = [
+        "https://arxiv.org/abs/2401.12345",
+        "https://en.wikipedia.org/wiki/Deep_learning",
+        "https://nature.com/articles/s41586-024-07890",
+        "https://github.com/example/repo",
+        "https://docs.python.org/3/library/asyncio.html",
+    ]
+    
+    thinking_phrases = [
+        "Let me analyze this problem step by step...",
+        "I'm searching for more information on this topic...",
+        "Based on the search results, I found several relevant sources...",
+        "Processing the retrieved data...",
+        "Synthesizing information from multiple sources...",
+        "Cross-referencing the findings with academic literature...",
+        "Evaluating the credibility of different sources...",
+        "Formulating a comprehensive response...",
+    ]
+    
+    async def generate():
+        # Initial status
+        yield json.dumps({"type": "text", "text": "[Status] Starting fake research..."}) + "\n"
+        await asyncio.sleep(0.5)
+        
+        # Random number of rounds
+        num_rounds = random.randint(3, 6)
+        
+        for round_num in range(num_rounds):
+            # Thinking text
+            yield json.dumps({"type": "text", "text": random.choice(thinking_phrases)}) + "\n"
+            await asyncio.sleep(random.uniform(0.3, 0.8))
+            
+            # Tool call
+            tool = random.choice(fake_tools)
+            tool_event = {"type": "tool", "tool": tool}
+            
+            if tool == "search":
+                queries = [f"query_{random.randint(1, 100)}" for _ in range(random.randint(1, 3))]
+                tool_event["args"] = {"query": queries}
+            elif tool == "visit":
+                url = random.choice(fake_urls)
+                tool_event["link"] = url
+                tool_event["args"] = {"url": url, "goal": "Extract relevant information"}
+            elif tool == "google_scholar":
+                tool_event["args"] = {"query": [f"academic research {random.randint(1, 50)}"]}
+            
+            yield json.dumps(tool_event) + "\n"
+            await asyncio.sleep(random.uniform(0.5, 1.5))
+            
+            # Tool result
+            random_content = ''.join(random.choices(string.ascii_letters + ' ', k=random.randint(100, 300)))
+            yield json.dumps({"type": "text", "text": f"[Tool Result] {random_content}"}) + "\n"
+            await asyncio.sleep(random.uniform(0.2, 0.5))
+        
+        # Final answer
+        final_answer = (
+            "Based on my comprehensive research, here are the key findings:\n\n"
+            "1. This is a randomly generated fake response for testing streaming.\n"
+            "2. The actual research would provide real, synthesized information.\n"
+            "3. Use the /api/v1/research endpoint for actual research queries.\n\n"
+            f"Research completed in {num_rounds} rounds."
+        )
+        yield json.dumps({"type": "text", "text": final_answer, "is_answer": True, "is_final": True}) + "\n"
+    
+    return StreamingResponse(
+        generate(),
+        media_type="application/x-ndjson",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        }
+    )
+
+
 # === Run Server ===
 
 if __name__ == "__main__":
