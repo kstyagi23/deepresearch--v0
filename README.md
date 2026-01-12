@@ -61,6 +61,7 @@ You can directly download the model by following the links below.
 [2025/09/17]🔥 We have released **Tongyi-DeepResearch-30B-A3B**.
 
 # Deep Research Benchmark Results
+
 <p align="center">
   <img width="100%" src="./assets/benchmark.png">
 </p>
@@ -70,6 +71,7 @@ You can directly download the model by following the links below.
 This guide provides instructions for setting up the environment and running inference scripts located in the [inference](./inference/) folder.
 
 ### 1. Environment Setup
+
 - Recommended Python version: **3.10.0** (using other versions may cause dependency issues).
 - It is strongly advised to create an isolated environment using `conda` or `virtualenv`.
 
@@ -82,6 +84,7 @@ conda activate react_infer_env
 ### 2. Installation
 
 Install the required dependencies:
+
 ```bash
 pip install -r requirements.txt
 ```
@@ -99,7 +102,7 @@ cp .env.example .env
 
 Edit the `.env` file and provide your actual API keys and configuration values:
 
-- **SERPER_KEY_ID**: Get your key from [Serper.dev](https://serper.dev/) for web search and Google Scholar
+- **TAVILY_API_KEY**: Get your key from [Tavily](https://tavily.com/) for web search and academic search
 - **JINA_API_KEYS**: Get your key from [Jina.ai](https://jina.ai/) for web page reading
 - **API_KEY/API_BASE**: OpenAI-compatible API for page summarization from [OpenAI](https://platform.openai.com/)
 - **DASHSCOPE_API_KEY**: Get your key from [Dashscope](https://dashscope.aliyun.com/) for file parsing
@@ -117,6 +120,7 @@ The system supports two input file formats: **JSON** and **JSONL**.
 #### Supported File Formats:
 
 **Option 1: JSONL Format (recommended)**
+
 - Create your data file with `.jsonl` extension (e.g., `my_questions.jsonl`)
 - Each line must be a valid JSON object with `question` and `answer` keys:
   ```json
@@ -125,6 +129,7 @@ The system supports two input file formats: **JSON** and **JSONL**.
   ```
 
 **Option 2: JSON Format**
+
 - Create your data file with `.json` extension (e.g., `my_questions.json`)
 - File must contain a JSON array of objects, each with `question` and `answer` keys:
   ```json
@@ -143,6 +148,7 @@ The system supports two input file formats: **JSON** and **JSONL**.
 - Example: `{"question": "(Uploaded 1 file: ['report.pdf'])\n\nWhat are the key findings?", "answer": "..."}`
 
 #### File Organization:
+
 ```
 project_root/
 ├── eval_data/
@@ -165,6 +171,7 @@ project_root/
 ```bash
 bash run_react_infer.sh
 ```
+
 ---
 
 With these steps, you can fully prepare the environment, configure the dataset, and run the model. For more details, consult the inline comments in each script or open an issue.

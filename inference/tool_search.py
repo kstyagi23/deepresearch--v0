@@ -6,13 +6,10 @@ from qwen_agent.tools.base import BaseTool, register_tool
 import asyncio
 from typing import Dict, List, Optional, Union
 import uuid
-import http.client
-import json
-
 import os
 
 
-SERPER_KEY=os.environ.get('SERPER_KEY_ID')
+TAVILY_API_KEY = os.environ.get('TAVILY_API_KEY')
 
 
 @register_tool("search", allow_overwrite=True)
@@ -35,80 +32,63 @@ class Search(BaseTool):
 
     def __init__(self, cfg: Optional[dict] = None):
         super().__init__(cfg)
-    def google_search_with_serp(self, query: str):
-        def contains_chinese_basic(text: str) -> bool:
-            return any('\u4E00' <= char <= '\u9FFF' for char in text)
-        conn = http.client.HTTPSConnection("google.serper.dev")
-        if contains_chinese_basic(query):
-            payload = json.dumps({
-                "q": query,
-                "location": "China",
-                "gl": "cn",
-                "hl": "zh-cn"
-            })
-            
-        else:
-            payload = json.dumps({
-                "q": query,
-                "location": "United States",
-                "gl": "us",
-                "hl": "en"
-            })
-        headers = {
-                'X-API-KEY': SERPER_KEY,
-                'Content-Type': 'application/json'
-            }
+
+    def tavily_search(self, query: str):
+        """Perform a web search using Tavily API."""
+        url = "https://api.tavily.com/search"
         
+        headers = {
+            'Authorization': f'Bearer {TAVILY_API_KEY}',
+            'Content-Type': 'application/json'
+        }
+        
+        payload = {
+            "query": query,
+            "max_results": 10,
+            "search_depth": "basic",
+            "topic": "general"
+        }
         
         for i in range(5):
             try:
-                conn.request("POST", "/search", payload, headers)
-                res = conn.getresponse()
+                response = requests.post(url, json=payload, headers=headers, timeout=30)
+                response.raise_for_status()
                 break
             except Exception as e:
                 print(e)
                 if i == 4:
-                    return f"Google search Timeout, return None, Please try again later."
+                    return f"Tavily search timeout, return None. Please try again later."
                 continue
-    
-        data = res.read()
-        results = json.loads(data.decode("utf-8"))
+        
+        results = response.json()
 
         try:
-            if "organic" not in results:
+            if "results" not in results or len(results["results"]) == 0:
                 raise Exception(f"No results found for query: '{query}'. Use a less specific query.")
 
             web_snippets = list()
             idx = 0
-            if "organic" in results:
-                for page in results["organic"]:
-                    idx += 1
-                    date_published = ""
-                    if "date" in page:
-                        date_published = "\nDate published: " + page["date"]
+            for page in results["results"]:
+                idx += 1
+                
+                # Extract published date if available
+                date_published = ""
+                if "published_date" in page and page["published_date"]:
+                    date_published = "\nDate published: " + page["published_date"]
 
-                    source = ""
-                    if "source" in page:
-                        source = "\nSource: " + page["source"]
+                # Content from Tavily
+                snippet = ""
+                if "content" in page and page["content"]:
+                    snippet = "\n" + page["content"]
 
-                    snippet = ""
-                    if "snippet" in page:
-                        snippet = "\n" + page["snippet"]
+                redacted_version = f"{idx}. [{page['title']}]({page['url']}){date_published}\n{snippet}"
+                redacted_version = redacted_version.replace("Your browser can't play this video.", "")
+                web_snippets.append(redacted_version)
 
-                    redacted_version = f"{idx}. [{page['title']}]({page['link']}){date_published}{source}\n{snippet}"
-                    redacted_version = redacted_version.replace("Your browser can't play this video.", "")
-                    web_snippets.append(redacted_version)
-
-            content = f"A Google search for '{query}' found {len(web_snippets)} results:\n\n## Web Results\n" + "\n\n".join(web_snippets)
+            content = f"A web search for '{query}' found {len(web_snippets)} results:\n\n## Web Results\n" + "\n\n".join(web_snippets)
             return content
         except:
             return f"No results found for '{query}'. Try with a more general query."
-
-
-    
-    def search_with_serp(self, query: str):
-        result = self.google_search_with_serp(query)
-        return result
 
     def call(self, params: Union[str, dict], **kwargs) -> str:
         try:
@@ -117,15 +97,14 @@ class Search(BaseTool):
             return "[Search] Invalid request format: Input must be a JSON object containing 'query' field"
         
         if isinstance(query, str):
-            # 单个查询
-            response = self.search_with_serp(query)
+            # Single query
+            response = self.tavily_search(query)
         else:
-            # 多个查询
+            # Multiple queries
             assert isinstance(query, List)
             responses = []
             for q in query:
-                responses.append(self.search_with_serp(q))
+                responses.append(self.tavily_search(q))
             response = "\n=======\n".join(responses)
             
         return response
-
