@@ -198,9 +198,12 @@ async def research(request: ResearchRequest):
             gen = agent.research_stream(question)
             try:
                 while True:
-                    event = next(gen)
+                    # Run the blocking next() call in a thread pool to avoid blocking the event loop
+                    event = await asyncio.to_thread(next, gen)
                     event_data = format_stream_event(event)
                     yield json.dumps(event_data) + "\n"
+                    # Give control back to the event loop to ensure data is flushed
+                    await asyncio.sleep(0)
             except StopIteration as e:
                 # Send final result marker
                 final_result = e.value
